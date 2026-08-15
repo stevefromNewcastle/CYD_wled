@@ -364,6 +364,10 @@ void setup() {
 
 void loop() {
     lv_timer_handler();
+    lv_tick_inc(5);  // required even with LV_TICK_CUSTOM/millis() in lv_conf.h --
+                      // without it LVGL logs a repeating "lv_tick_inc() is not
+                      // called" warning at boot (found during on-device testing;
+                      // matches the pattern the base CYD project already used)
     delay(5);
 }
 ```
@@ -1123,6 +1127,8 @@ void setup() {
 
 void loop() {
     lv_timer_handler();
+    lv_tick_inc(5);  // required even with LV_TICK_CUSTOM/millis() in lv_conf.h --
+                      // see Task 6, discovered during on-device testing
 
     // Power-save: backlight off after the configured idle timeout, back on
     // at the next touch. lv_display_get_inactive_time() tracks input
