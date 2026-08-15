@@ -48,7 +48,8 @@ Same six-module split as LVGL_wled:
 | `touch.cpp/h` | Rewritten: XPT2046 SPI polling |
 | `battery.cpp/h` | Stubbed — always reports "no battery" |
 | `ui.cpp/h` | Migrated v8→v9 (see below) |
-| `wled.cpp/h`, `wifi_setup.cpp/h`, `settings.cpp/h`, `logo_mark.cpp/h` | Unchanged |
+| `wled.cpp/h`, `wifi_setup.cpp/h`, `settings.cpp/h` | Unchanged |
+| `logo_mark.cpp/h` | Dropped — v8 image data incompatible with v9's reworked image struct |
 | `main.cpp` | Adapted setup/loop, power-latch code removed |
 
 ## `config.h`
@@ -204,7 +205,7 @@ lv_slider_set_range(r_slider, 0, 255);
 Same screen structure otherwise (header with back button + swipe-left,
 swatch preview, send button) — only the input control changes.
 
-## `wled.cpp/h`, `wifi_setup.cpp/h`, `settings.cpp/h`, `logo_mark.cpp/h`
+## `wled.cpp/h`, `wifi_setup.cpp/h`, `settings.cpp/h`
 
 Copied unchanged. No LVGL or hardware-specific code in any of them — WiFi,
 HTTPClient, ArduinoJson, WiFiManager, Preferences (NVS) are all
@@ -213,6 +214,21 @@ board-agnostic ESP32/Arduino APIs.
 One change: `settings.cpp`'s NVS namespace (`"lvglwled"`) is renamed to
 `"cydwled"`. Not functionally required (separate device, separate flash),
 but avoids the namespace looking like a copy-paste leftover.
+
+## `logo_mark.cpp/h` — dropped, not ported
+
+`logo_mark.cpp` designated-initializes an `lv_img_dsc_t` using
+`.header.cf = LV_IMG_CF_TRUE_COLOR_ALPHA` and `.header.always_zero` /
+`.header.reserved` fields. Checked against the installed v9.5.0 headers:
+`LV_IMG_CF_TRUE_COLOR_ALPHA` doesn't exist anywhere in v9 (colour formats
+were reworked into `lv_color_format_t`), and v9's image header struct has a
+different field set (e.g. adds `stride`). The `lv_img_dsc_t` type name
+still resolves — v9 aliases it to `lv_image_dsc_t` — but the literal byte
+data and initializer don't match the new struct shape, so it won't compile
+as-is. Regenerating it would mean re-running LVGL's image-converter tool
+against a new colour format for a purely decorative status-screen logo —
+out of scope for this port. The status screen keeps its title/message text
+without the graphic.
 
 ## `main.cpp`
 
