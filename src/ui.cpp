@@ -3,6 +3,7 @@
 #include "wled.h"
 #include "wifi_setup.h"
 #include "battery.h"
+#include "logo_touch.h"
 #include <lvgl.h>
 #include <Arduino.h>
 #include <string.h>
@@ -293,11 +294,13 @@ void ui_show_status(const char *msg) {
         lv_obj_add_flag(scr_status, LV_OBJ_FLAG_CLICKABLE);
         lv_obj_add_event_cb(scr_status, header_long_press_cb, LV_EVENT_LONG_PRESSED, NULL);
 
-        // No logo image on this port (see Task 7 in the plan — the v8
-        // logo_mark image descriptor doesn't compile against v9's reworked
-        // image struct, and regenerating it isn't worth it for a purely
-        // decorative element). Title starts near the top instead of below
-        // a 96px graphic.
+        // Logo + title are kept compact (small top margin, tight gaps) so
+        // the longest status message ("Setup Mode" + WiFi instructions,
+        // 8 lines) still fits below them on a 320px-tall screen.
+        lv_obj_t *logo = lv_image_create(scr_status);
+        lv_image_set_src(logo, &logo_touch);
+        lv_obj_align(logo, LV_ALIGN_TOP_MID, 0, 8);
+
         lv_obj_t *lbl_title = lv_label_create(scr_status);
         lv_label_set_text(lbl_title, "DMX Engine Touch Panel");
         lv_label_set_long_mode(lbl_title, LV_LABEL_LONG_WRAP);
@@ -305,7 +308,7 @@ void ui_show_status(const char *msg) {
         lv_obj_set_style_text_color(lbl_title, lv_color_white(), LV_PART_MAIN);
         lv_obj_set_style_text_font(lbl_title, &lv_font_montserrat_16, LV_PART_MAIN);
         lv_obj_set_style_text_align(lbl_title, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-        lv_obj_align(lbl_title, LV_ALIGN_TOP_MID, 0, 16);
+        lv_obj_align(lbl_title, LV_ALIGN_TOP_MID, 0, 8 + 96 + 8);
 
         lbl_status = lv_label_create(scr_status);
         lv_label_set_long_mode(lbl_status, LV_LABEL_LONG_WRAP);
@@ -313,7 +316,7 @@ void ui_show_status(const char *msg) {
         lv_obj_set_style_text_color(lbl_status, lv_color_white(), LV_PART_MAIN);
         lv_obj_set_style_text_font(lbl_status, &lv_font_montserrat_16, LV_PART_MAIN);
         lv_obj_set_style_text_align(lbl_status, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-        lv_obj_align(lbl_status, LV_ALIGN_TOP_MID, 0, 16 + 24 + 8);
+        lv_obj_align(lbl_status, LV_ALIGN_TOP_MID, 0, 8 + 96 + 8 + 24 + 8);
     }
     lv_label_set_text(lbl_status, msg);
     if (lv_screen_active() != scr_status) lv_screen_load(scr_status);
