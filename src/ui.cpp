@@ -337,7 +337,6 @@ void ui_show_presets(const WledPreset *presets, int count) {
     lv_obj_set_style_border_width(header, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(header, 0, LV_PART_MAIN);
     lv_obj_clear_flag(header, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(header, LV_OBJ_FLAG_GESTURE_BUBBLE);
 
     lv_obj_t *title = lv_label_create(header);
     lv_label_set_text(title, "Lighting Preset");
