@@ -117,9 +117,9 @@ static void preset_btn_cb(lv_event_t *e) {
     wled_activate_preset(id);
 }
 
-// Battery icon: hidden when no battery is detected (always the case on
-// this board — see battery.cpp), otherwise refreshed periodically by a
-// shared LVGL timer (created once, outlives screen rebuilds — always
+// Battery icon: hidden when no battery is detected (e.g. running on USB
+// with none attached — see battery.cpp), otherwise refreshed periodically
+// by a shared LVGL timer (created once, outlives screen rebuilds — always
 // checked against the current lbl_battery pointer).
 static lv_timer_t *battery_timer = nullptr;
 

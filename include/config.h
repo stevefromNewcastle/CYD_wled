@@ -43,7 +43,13 @@
 #define XPT2046_CLK   25   // T_CLK
 #define XPT2046_CS    33   // T_CS
 
-// Note: this board has no battery circuit (USB/5V powered) and no
-// soft-power-latch circuit, unlike the Waveshare board LVGL_wled
-// originally targeted — so there are deliberately no BATTERY_* or
-// POWER_HOLD_PIN defines here.
+// =============================================================
+//  Battery — LiPo cell on the JST connector, sensed via a 2:1
+//  resistor divider into GPIO34 (per this board's vendor example).
+//  No soft-power-latch circuit here, unlike the Waveshare board
+//  LVGL_wled originally targeted — so there's no POWER_HOLD_PIN.
+// =============================================================
+#define BATTERY_ADC_PIN        34
+#define BATTERY_EMPTY_V        3.3f  // 0%
+#define BATTERY_FULL_V         4.2f  // 100%
+#define BATTERY_PRESENT_MIN_V  3.0f  // below this, treat as "no battery" (USB-only)

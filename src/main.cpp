@@ -29,7 +29,7 @@ void setup() {
     // Touch input device
     touch_init();
 
-    // Battery voltage sensing (always reports "no battery" on this board)
+    // Battery voltage sensing (LiPo on GPIO34 via 2:1 divider — see config.h)
     battery_init();
 
     g_touch_indev = lv_indev_create();
