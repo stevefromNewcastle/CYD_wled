@@ -9,6 +9,7 @@
 #include "wifi_setup.h"
 #include "battery.h"
 #include "settings.h"
+#include "buttons.h"
 
 // ---------------------------------------------------------------------------
 // setup / loop
@@ -31,6 +32,9 @@ void setup() {
 
     // Battery voltage sensing (LiPo on GPIO34 via 2:1 divider — see config.h)
     battery_init();
+
+    // Test buttons (GPIO27, GPIO18) — hardware bring-up, logs to Serial only
+    buttons_init();
 
     g_touch_indev = lv_indev_create();
     lv_indev_set_type(g_touch_indev, LV_INDEV_TYPE_POINTER);
@@ -62,6 +66,8 @@ void loop() {
     lv_timer_handler();
     lv_tick_inc(5);  // required even with LV_TICK_CUSTOM/millis() in lv_conf.h --
                       // see Task 6, discovered during on-device testing
+
+    buttons_update();
 
     // Power-save: backlight off after the configured idle timeout, back on
     // at the next touch. lv_display_get_inactive_time() tracks input

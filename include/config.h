@@ -25,7 +25,12 @@
 // =============================================================
 #define DISPLAY_WIDTH    240
 #define DISPLAY_HEIGHT   320
-#define DISPLAY_ROTATION 0    // 0 = portrait
+// 0 = portrait, 180 = portrait upside-down. Override with a
+// -DDISPLAY_ROTATION=180 build flag (see platformio.ini) rather than
+// editing this file, so the flip is a one-line, per-build toggle.
+#ifndef DISPLAY_ROTATION
+#define DISPLAY_ROTATION 0
+#endif
 #define DISPLAY_BL_PIN   21   // GPIO21 — TFT_BL, backlight enable (active HIGH)
 
 // Backlight turns off after this many ms with no touch input, and back on
@@ -53,3 +58,10 @@
 #define BATTERY_EMPTY_V        3.3f  // 0%
 #define BATTERY_FULL_V         4.2f  // 100%
 #define BATTERY_PRESENT_MIN_V  3.0f  // below this, treat as "no battery" (USB-only)
+
+// =============================================================
+//  Test buttons — two momentary buttons wired to ground, using
+//  internal pullups (pressed = pin reads LOW).
+// =============================================================
+#define BUTTON1_PIN  27
+#define BUTTON2_PIN  18

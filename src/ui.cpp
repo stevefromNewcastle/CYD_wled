@@ -21,7 +21,6 @@
 #define SLIDER_H       18
 #define SWATCH_H       40
 #define SEND_BTN_H     44
-#define REFRESH_BAR_H  44
 
 // Colour-picker row Y positions (fixed, not accumulated — easier to verify
 // they all fit inside the 320px-tall portrait screen: last element bottom
@@ -143,26 +142,18 @@ static void battery_timer_cb(lv_timer_t * /*timer*/) {
     lv_label_set_text(lbl_battery, sym);
 }
 
-// Refresh button: re-fetch the preset list from WLED and rebuild the screen
+// Re-fetch the preset list from WLED and rebuild the screen. Triggered by
+// physical Button 1 (see buttons.cpp) — there's no on-screen refresh
+// control any more.
 static WledPreset s_refresh_presets[WLED_MAX_PRESETS];
 
-static void refresh_btn_cb(lv_event_t *e) {
-    if (lv_event_get_code(e) != LV_EVENT_CLICKED) return;
-    Serial.println("[UI] Refresh presets tapped");
+void ui_refresh_presets() {
+    Serial.println("[UI] Refreshing presets");
     int count = 0;
     if (wled_fetch_presets(s_refresh_presets, count)) {
         ui_show_presets(s_refresh_presets, count);
     } else {
         ui_show_status("No presets found.\nCreate presets in the\nWLED web UI first.");
-    }
-}
-
-// Gesture on the presets container: swipe right → colour picker
-static void presets_gesture_cb(lv_event_t *e) {
-    if (lv_event_get_code(e) != LV_EVENT_GESTURE) return;
-    lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_active());
-    if (dir == LV_DIR_RIGHT) {
-        ui_show_color_picker();
     }
 }
 
@@ -270,18 +261,10 @@ static void color_send_cb(lv_event_t *e) {
     wled_set_color(r, g, b);
 }
 
-// Back button / swipe left → return to presets
+// Back button → return to presets
 static void color_back_cb(lv_event_t *e) {
     if (lv_event_get_code(e) != LV_EVENT_CLICKED) return;
-    if (scr_presets) lv_screen_load(scr_presets);
-}
-
-static void color_gesture_cb(lv_event_t *e) {
-    if (lv_event_get_code(e) != LV_EVENT_GESTURE) return;
-    lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_active());
-    if (dir == LV_DIR_LEFT) {
-        if (scr_presets) lv_screen_load(scr_presets);
-    }
+    ui_back_to_presets();
 }
 
 // ---------------------------------------------------------------------------
@@ -350,12 +333,6 @@ void ui_show_presets(const WledPreset *presets, int count) {
     lv_obj_add_flag(header, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(header, header_long_press_cb, LV_EVENT_LONG_PRESSED, NULL);
 
-    // Swipe hint in corner
-    lv_obj_t *hint = lv_label_create(header);
-    lv_label_set_text(hint, ">");
-    lv_obj_set_style_text_color(hint, lv_color_make(0x60, 0x60, 0x60), LV_PART_MAIN);
-    lv_obj_align(hint, LV_ALIGN_RIGHT_MID, -8, 0);
-
     // Battery icon — hidden until the first reading confirms a battery is
     // actually attached (never happens on this board, but the mechanism
     // stays identical to LVGL_wled's so ui.cpp doesn't special-case it)
@@ -370,18 +347,14 @@ void ui_show_presets(const WledPreset *presets, int count) {
 
     // --- Scrollable preset grid ---
     lv_obj_t *cont = lv_obj_create(scr_presets);
-    lv_obj_set_size(cont, DISPLAY_WIDTH, DISPLAY_HEIGHT - HEADER_H - REFRESH_BAR_H - 16);
+    lv_obj_set_size(cont, DISPLAY_WIDTH, DISPLAY_HEIGHT - HEADER_H - 8);
     lv_obj_set_pos(cont, 0, HEADER_H);
     lv_obj_set_style_bg_color(cont, lv_color_make(0x1C, 0x1C, 0x1E), LV_PART_MAIN);
     lv_obj_set_style_border_width(cont, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(cont, BTN_GAP, LV_PART_MAIN);
     lv_obj_set_style_pad_gap(cont, BTN_GAP, LV_PART_MAIN);
     lv_obj_set_flex_flow(cont, LV_FLEX_FLOW_ROW_WRAP);
-    lv_obj_set_scroll_dir(cont, LV_DIR_VER);   // vertical scroll only → horizontal = gesture
-
-    // Bubble gestures up to scr_presets
-    lv_obj_add_flag(cont, LV_OBJ_FLAG_GESTURE_BUBBLE);
-    lv_obj_add_event_cb(scr_presets, presets_gesture_cb, LV_EVENT_GESTURE, NULL);
+    lv_obj_set_scroll_dir(cont, LV_DIR_VER);
 
     if (count == 0) {
         lv_obj_t *empty = lv_label_create(cont);
@@ -398,7 +371,6 @@ void ui_show_presets(const WledPreset *presets, int count) {
                      lv_color_make(0xA9, 0x76, 0x2A));
         lv_obj_set_style_pad_all(btn, 4, LV_PART_MAIN);
         lv_obj_clear_flag(btn, LV_OBJ_FLAG_SCROLLABLE);
-        lv_obj_add_flag(btn, LV_OBJ_FLAG_GESTURE_BUBBLE);
 
         lv_obj_add_event_cb(btn, preset_btn_cb, LV_EVENT_CLICKED, (void *)(intptr_t)presets[i].id);
 
@@ -410,23 +382,7 @@ void ui_show_presets(const WledPreset *presets, int count) {
         lv_obj_set_style_text_font(lbl, &lv_font_montserrat_14, LV_PART_MAIN);
         lv_obj_set_style_text_align(lbl, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
         lv_obj_center(lbl);
-        lv_obj_add_flag(lbl, LV_OBJ_FLAG_GESTURE_BUBBLE);
     }
-
-    // --- Refresh bar ---
-    lv_obj_t *refresh_btn = lv_button_create(scr_presets);
-    lv_obj_set_size(refresh_btn, DISPLAY_WIDTH - 16, REFRESH_BAR_H);
-    lv_obj_align(refresh_btn, LV_ALIGN_BOTTOM_MID, 0, -8);
-    style_button(refresh_btn,
-                 lv_color_make(0x5B, 0x5D, 0x60), lv_color_make(0x44, 0x46, 0x48),
-                 lv_color_make(0xA9, 0x76, 0x2A));
-    lv_obj_add_event_cb(refresh_btn, refresh_btn_cb, LV_EVENT_CLICKED, NULL);
-
-    lv_obj_t *refresh_lbl = lv_label_create(refresh_btn);
-    lv_label_set_text(refresh_lbl, LV_SYMBOL_REFRESH " Refresh");
-    lv_obj_set_style_text_color(refresh_lbl, lv_color_white(), LV_PART_MAIN);
-    lv_obj_set_style_text_font(refresh_lbl, &lv_font_montserrat_16, LV_PART_MAIN);
-    lv_obj_center(refresh_lbl);
 
     lv_screen_load(scr_presets);
 }
@@ -444,9 +400,6 @@ void ui_show_color_picker() {
     const lv_color_t dark = lv_color_make(0x1C, 0x1C, 0x1E);
     scr_color = make_screen(dark);
 
-    // Bubble gestures on the screen itself for swipe-left-to-back
-    lv_obj_add_event_cb(scr_color, color_gesture_cb, LV_EVENT_GESTURE, NULL);
-
     // --- Header ---
     lv_obj_t *header = lv_obj_create(scr_color);
     lv_obj_set_size(header, DISPLAY_WIDTH, HEADER_H);
@@ -455,7 +408,6 @@ void ui_show_color_picker() {
     lv_obj_set_style_border_width(header, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(header, 0, LV_PART_MAIN);
     lv_obj_clear_flag(header, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(header, LV_OBJ_FLAG_GESTURE_BUBBLE);
 
     // Back button
     lv_obj_t *back_btn = lv_button_create(header);
@@ -489,7 +441,6 @@ void ui_show_color_picker() {
     lv_slider_set_range(slider_r, 0, 255);
     lv_slider_set_value(slider_r, 0, LV_ANIM_OFF);
     lv_obj_add_event_cb(slider_r, slider_r_cb, LV_EVENT_VALUE_CHANGED, NULL);
-    lv_obj_add_flag(slider_r, LV_OBJ_FLAG_GESTURE_BUBBLE);
 
     lbl_g = lv_label_create(scr_color);
     lv_label_set_text(lbl_g, "Green 0");
@@ -502,7 +453,6 @@ void ui_show_color_picker() {
     lv_slider_set_range(slider_g, 0, 255);
     lv_slider_set_value(slider_g, 0, LV_ANIM_OFF);
     lv_obj_add_event_cb(slider_g, slider_g_cb, LV_EVENT_VALUE_CHANGED, NULL);
-    lv_obj_add_flag(slider_g, LV_OBJ_FLAG_GESTURE_BUBBLE);
 
     lbl_b = lv_label_create(scr_color);
     lv_label_set_text(lbl_b, "Blue  0");
@@ -515,7 +465,6 @@ void ui_show_color_picker() {
     lv_slider_set_range(slider_b, 0, 255);
     lv_slider_set_value(slider_b, 0, LV_ANIM_OFF);
     lv_obj_add_event_cb(slider_b, slider_b_cb, LV_EVENT_VALUE_CHANGED, NULL);
-    lv_obj_add_flag(slider_b, LV_OBJ_FLAG_GESTURE_BUBBLE);
 
     // --- Swatch preview ---
     color_swatch = lv_obj_create(scr_color);
@@ -524,7 +473,6 @@ void ui_show_color_picker() {
     lv_obj_set_style_radius(color_swatch, 6, LV_PART_MAIN);
     lv_obj_set_style_border_width(color_swatch, 0, LV_PART_MAIN);
     lv_obj_set_style_bg_color(color_swatch, lv_color_black(), LV_PART_MAIN);
-    lv_obj_add_flag(color_swatch, LV_OBJ_FLAG_GESTURE_BUBBLE);
 
     // --- Send button ---
     lv_obj_t *send_btn = lv_button_create(scr_color);
@@ -542,4 +490,16 @@ void ui_show_color_picker() {
     lv_obj_center(send_lbl);
 
     lv_screen_load(scr_color);
+}
+
+void ui_back_to_presets() {
+    if (scr_presets) lv_screen_load(scr_presets);
+}
+
+void ui_toggle_color_presets() {
+    if (lv_screen_active() == scr_color) {
+        ui_back_to_presets();
+    } else {
+        ui_show_color_picker();
+    }
 }

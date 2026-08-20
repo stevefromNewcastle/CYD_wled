@@ -16,7 +16,11 @@ void display_init() {
 
     lv_display_t *disp = lv_tft_espi_create(DISPLAY_WIDTH, DISPLAY_HEIGHT,
                                              draw_buf, sizeof(draw_buf));
-    lv_display_set_rotation(disp, LV_DISPLAY_ROTATION_0);  // portrait
+#if DISPLAY_ROTATION == 180
+    lv_display_set_rotation(disp, LV_DISPLAY_ROTATION_180);
+#else
+    lv_display_set_rotation(disp, LV_DISPLAY_ROTATION_0);
+#endif
 
     pinMode(DISPLAY_BL_PIN, OUTPUT);
     digitalWrite(DISPLAY_BL_PIN, HIGH);  // TFT_BACKLIGHT_ON is HIGH on this board
